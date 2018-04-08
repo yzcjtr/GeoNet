@@ -63,6 +63,9 @@ python geonet_main.py --mode=train_flow --dataset_dir=/path/to/formatted/data/ -
 You can choose to learn direct or residual flow by setting `--flownet_type` flag. **Note** that when the `--flownet_type` is `residual`, the `--init_ckpt_file` should be specified to point
 at a model pretrained on the same dataset with mode of `train_rigid`. Also a `max_steps` more than 200 epochs is preferred for learning residual flow.
 
+### Pretrained Models
+You can download our pretrained models as well as their predictions in all of the three tasks from [[Google Drive](https://drive.google.com/open?id=1VSGpdMrQ3dFKdher_2RteDfz7F0g57ZH)]. **Note** that they were trained according to **different splits** of KITTI as described in the paper. Following the testing and evaluation instructions below, you should obtain similar results as reported in the paper.
+
 ## Testing
 We provide testing and evaluation scripts for all of the three tasks.
 
