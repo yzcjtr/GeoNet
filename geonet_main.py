@@ -29,7 +29,6 @@ flags.DEFINE_float("learning_rate",             0.0002,    "Learning rate for ad
 flags.DEFINE_integer("max_to_keep",                 20,    "Maximum number of checkpoints to save")
 flags.DEFINE_integer("max_steps",               300000,    "Maximum number of training iterations")
 flags.DEFINE_integer("save_ckpt_freq",            5000,    "Save the checkpoint model every save_ckpt_freq iterations")
-flags.DEFINE_boolean("retrain",                   True,    "Retrain from step zero when init checkpoint given")
 flags.DEFINE_float("alpha_recon_image",           0.85,    "Alpha weight between SSIM and L1 in reconstruction loss")
 
 ##### Configurations about DepthNet & PoseNet of GeoNet #####
@@ -67,72 +66,81 @@ def train():
     if not os.path.exists(opt.checkpoint_dir):
         os.makedirs(opt.checkpoint_dir)
 
-    # Data Loader
-    loader = DataLoader(opt)
-    tgt_image, src_image_stack, intrinsics = loader.load_train_batch()
+    with tf.Graph().as_default():
+        # Data Loader
+        loader = DataLoader(opt)
+        tgt_image, src_image_stack, intrinsics = loader.load_train_batch()
 
-    # Build Model
-    model = GeoNetModel(opt, tgt_image, src_image_stack, intrinsics)
+        # Build Model
+        model = GeoNetModel(opt, tgt_image, src_image_stack, intrinsics)
+        loss = model.total_loss
 
-    # Train Op
-    if opt.mode == 'train_flow' and opt.flownet_type == "residual":
-        # we pretrain DepthNet & PoseNet, then finetune ResFlowNetS
-        train_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "flow_net")
-        vars_to_restore = slim.get_variables_to_restore(include=["depth_net", "pose_net"])
-    else:
-        train_vars = [var for var in tf.trainable_variables()]
-        vars_to_restore = slim.get_model_variables()
-            
-    optim = tf.train.AdamOptimizer(opt.learning_rate, 0.9)
-    train_op = slim.learning.create_train_op(model.total_loss, optim,
-                                             variables_to_train=train_vars)
-
-    # Parameter Count
-    parameter_count = 0
-    print("Trainable variables: ")
-    for var in train_vars:
-        print(var.name)
-        parameter_count += np.array(var.get_shape().as_list()).prod()
-    print("Parameter count: {}".format(parameter_count))
-
-    # Global Step
-    global_step = tf.Variable(1, name='global_step', trainable=False)
-
-    # Saver
-    train_saver = tf.train.Saver([var for var in tf.model_variables()] + \
-                                 [global_step], max_to_keep=opt.max_to_keep)
-
-    if opt.init_ckpt_file != None:
-        init_assign_op, init_feed_dict = slim.assign_from_checkpoint(
-                                         opt.init_ckpt_file, vars_to_restore)
-
-    # Session
-    sv = tf.train.Supervisor(logdir=opt.checkpoint_dir, saver=None)
-    config = tf.ConfigProto()
-    config.gpu_options.allow_growth = True
-
-    with sv.managed_session(config=config) as sess:
+        # Train Op
+        if opt.mode == 'train_flow' and opt.flownet_type == "residual":
+            # we pretrain DepthNet & PoseNet, then finetune ResFlowNetS
+            train_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, "flow_net")
+            vars_to_restore = slim.get_variables_to_restore(include=["depth_net", "pose_net"])
+        else:
+            train_vars = [var for var in tf.trainable_variables()]
+            vars_to_restore = slim.get_model_variables()
 
         if opt.init_ckpt_file != None:
-            sess.run(init_assign_op, init_feed_dict)
+            init_assign_op, init_feed_dict = slim.assign_from_checkpoint(
+                                            opt.init_ckpt_file, vars_to_restore)
 
-        # if opt.retrain:
-        #     sess.run(global_step.assign(1))
+        optim = tf.train.AdamOptimizer(opt.learning_rate, 0.9)
+        train_op = slim.learning.create_train_op(loss, optim,
+                                                 variables_to_train=train_vars)
 
-        # Training Loop
-        start_step = global_step.eval(session=sess)
-        start_time = time.time()
-        for step in range(start_step, opt.max_steps):        
-            _, loss_value = sess.run([train_op, model.total_loss])
-            if step % 100 == 0:
-                time_per_iter = (time.time() - start_time) / 100
-                start_time = time.time()
-                print('Iteration: [%7d] | Time: %4.4fs/iter | Loss: %.3f' \
-                      % (step, time_per_iter, loss_value))
-            if step % opt.save_ckpt_freq == 0:
-                train_saver.save(sess, opt.checkpoint_dir + 'model', global_step=step)
+        # Global Step
+        global_step = tf.Variable(0,
+                                name='global_step',
+                                trainable=False)
+        incr_global_step = tf.assign(global_step,
+                                     global_step+1)
 
-        train_saver.save(sess, opt.checkpoint_dir + 'model', global_step=opt.max_steps)
+        # Parameter Count
+        parameter_count = tf.reduce_sum([tf.reduce_prod(tf.shape(v)) \
+                                        for v in train_vars])
+
+        # Saver
+        saver = tf.train.Saver([var for var in tf.model_variables()] + \
+                                [global_step],
+                                max_to_keep=opt.max_to_keep)
+
+        # Session
+        sv = tf.train.Supervisor(logdir=opt.checkpoint_dir,
+                                 save_summaries_secs=0,
+                                 saver=None)
+        config = tf.ConfigProto()
+        config.gpu_options.allow_growth = True
+
+        with sv.managed_session(config=config) as sess:
+            print('Trainable variables: ')
+            for var in train_vars:
+                print(var.name)
+            print("parameter_count =", sess.run(parameter_count))
+
+            if opt.init_ckpt_file != None:
+                sess.run(init_assign_op, init_feed_dict)
+            start_time = time.time()
+
+            for step in range(1, opt.max_steps):
+                fetches = {
+                    "train": train_op,
+                    "global_step": global_step,
+                    "incr_global_step": incr_global_step
+                }
+                if step % 100 == 0:
+                    fetches["loss"] = loss
+                results = sess.run(fetches)
+                if step % 100 == 0:
+                    time_per_iter = (time.time() - start_time) / 100
+                    start_time = time.time()
+                    print('Iteration: [%7d] | Time: %4.4fs/iter | Loss: %.3f' \
+                          % (step, time_per_iter, results["loss"]))
+                if step % opt.save_ckpt_freq == 0:
+                    saver.save(sess, os.path.join(opt.checkpoint_dir, 'model'), global_step=step)
 
 def main(_):
 
