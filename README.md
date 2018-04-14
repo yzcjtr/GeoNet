@@ -12,7 +12,7 @@ arxiv preprint: (https://arxiv.org/abs/1803.02276)
 
 ## Requirements
 
-This code has been tested with Python2.7, TensorFlow 1.2 and CUDA 8.0 on Ubuntu 16.04.
+This code has been tested with Python2.7, TensorFlow 1.1 and CUDA 8.0 on Ubuntu 16.04.
 
 ## Data preparation
 
@@ -63,8 +63,15 @@ python geonet_main.py --mode=train_flow --dataset_dir=/path/to/formatted/data/ -
 You can choose to learn direct or residual flow by setting `--flownet_type` flag. **Note** that when the `--flownet_type` is `residual`, the `--init_ckpt_file` should be specified to point
 at a model pretrained on the same dataset with mode of `train_rigid`. Also a `max_steps` more than 200 epochs is preferred for learning residual flow.
 
-### Pretrained Models
+### Pretrained models
 You can download our pretrained models as well as their predictions in all of the three tasks from [[Google Drive](https://drive.google.com/open?id=1VSGpdMrQ3dFKdher_2RteDfz7F0g57ZH)]. **Note** that they were trained according to **different splits** of KITTI as described in the paper. Following the testing and evaluation instructions below, you should obtain similar results as reported in the paper.
+
+#### Notes about depth scale normalization
+Following most of the original hyperparameters but setting `--scale_normalize` as True, we have trained our DepthNet better on the Eigen's split of KITTI. The pretrained model is also provided, namely **model_sn** in **geonet_depthnet** subfolder. Note this is not included in our paper, but the performance is further improved:
+
+| Abs Rel | Sq Rel | RMSE  | RMSE(log) | Acc.1 | Acc.2 | Acc.3 |
+|---------|--------|-------|-----------|-------|-------|-------|
+| 0.149   | 1.060  | 5.567 | 0.226     | 0.796 | 0.935 | 0.975 |
 
 ## Testing
 We provide testing and evaluation scripts for all of the three tasks.
