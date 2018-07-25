@@ -28,12 +28,12 @@ and you should download the calibration files as well as ground truth poses (for
 
 After downloaded the data, you can run the following command for preprocessing:
 ```bash
-python data/prepare_train_data.py --dataset_dir=/path/to/kitti/dataset/ --dataset_name=kitti_split --dump_root=/path/to/formatted/data/ --seq_length=3 --img_height=128 --img_width=416 --num_threads=16
+python data/prepare_train_data.py --dataset_dir=/path/to/kitti/dataset/ --dataset_name=kitti_split --dump_root=/path/to/formatted/data/ --seq_length=3 --img_height=128 --img_width=416 --num_threads=16 --remove_static
 ```
 
-For **depth** task, the `--dataset_name` should be `kitti_raw_eigen` and adding `--remove_static` flag is suggested;
+For **depth** task, the `--dataset_name` should be `kitti_raw_eigen` and `--seq_length` is set to `3`;
 
-For **flow** task, the `--dataset_name` should be `kitti_raw_stereo` (`--remove_static` is left out for learning optical flow in generic cases);
+For **flow** task, the `--dataset_name` should be `kitti_raw_stereo` and `--seq_length` is set to `3`;
 
 For **pose** task, the `--dataset_name` should be `kitti_odom` and `--seq_length` is set to `5`.
 
@@ -116,7 +116,7 @@ python kitti_eval/eval_flow.py --dataset_dir=/path/to/kitti_stereo_2015/ --pred_
 ```
 
 ## Acknowledgements
-We thank [Tinghui Zhou](https://github.com/tinghuiz/SfMLearner) and [Clément Godard](https://github.com/mrharicot/monodepth) for their great work and repo.
+We thank [Tinghui Zhou](https://github.com/tinghuiz/SfMLearner) and [Clément Godard](https://github.com/mrharicot/monodepth) for their great works and repos.
 
 ## Reference
 If you find our work useful in your research please consider citing our paper:
