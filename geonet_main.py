@@ -22,6 +22,8 @@ flags.DEFINE_integer("num_threads",                 32,    "Number of threads fo
 flags.DEFINE_integer("img_height",                 128,    "Image height")
 flags.DEFINE_integer("img_width",                  416,    "Image width")
 flags.DEFINE_integer("seq_length",                   3,    "Sequence length for each example")
+flags.DEFINE_integer("num_source",                None,    "Number of source images")
+flags.DEFINE_integer("num_scales",                None,    "Number of used image scales")
 
 ##### Training Configurations #####
 flags.DEFINE_string("checkpoint_dir",               "",    "Directory name to save the checkpoints")
@@ -32,12 +34,15 @@ flags.DEFINE_integer("save_ckpt_freq",            5000,    "Save the checkpoint 
 flags.DEFINE_float("alpha_recon_image",           0.85,    "Alpha weight between SSIM and L1 in reconstruction loss")
 
 ##### Configurations about DepthNet & PoseNet of GeoNet #####
+flags.DEFINE_boolean("add_posenet",              False,    "Whether PoseNet should be added")
+flags.DEFINE_boolean("add_dispnet",              False,    "Whether DispNet should be added")
 flags.DEFINE_string("dispnet_encoder",      "resnet50",    "Type of encoder for dispnet, vgg or resnet50")
 flags.DEFINE_boolean("scale_normalize",          False,    "Spatially normalize depth prediction")
 flags.DEFINE_float("rigid_warp_weight",            1.0,    "Weight for warping by rigid flow")
 flags.DEFINE_float("disp_smooth_weight",           0.5,    "Weight for disp smoothness")
 
 ##### Configurations about ResFlowNet of GeoNet (or DirFlowNetS) #####
+flags.DEFINE_boolean("add_flownet",              False,    "Whether FlowNet should be added")
 flags.DEFINE_string("flownet_type",         "residual",    "type of flownet, residual or direct")
 flags.DEFINE_float("flow_warp_weight",             1.0,    "Weight for warping by full flow")
 flags.DEFINE_float("flow_smooth_weight",           0.2,    "Weight for flow smoothness")
