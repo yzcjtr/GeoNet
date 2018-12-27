@@ -12,7 +12,7 @@ arxiv preprint: (https://arxiv.org/abs/1803.02276)
 
 ## Requirements
 
-This code has been tested with Python2.7, TensorFlow 1.1 and CUDA 8.0 on Ubuntu 16.04.
+This code has been tested with Python 2.7, TensorFlow 1.1 and CUDA 8.0 on Ubuntu 16.04.
 
 ## Data preparation
 
